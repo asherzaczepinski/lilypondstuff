@@ -1,51 +1,97 @@
-from PIL import Image
+from music21 import note, stream, layout, meter, key, tempo, environment
 
-def crop_top_quartet(input_image_path, output_image_path, crop_proportion=0.25):
+def create_g_major_scale_three_octaves(start_pitch='G4', octaves=3):
     """
-    Crops the top portion of an image based on a proportion of its height and saves the result.
+    Creates a musical score of the G Major scale spanning three octaves.
+    If the scale exceeds the line or page width, it wraps to the next line.
 
-    :param input_image_path: Path to the original image (e.g., 'output.png')
-    :param output_image_path: Path to save the cropped image (e.g., 'top_quartet.png')
-    :param crop_proportion: The fraction of the image's height to retain from the top (default is 0.25 for 25%)
+    :param start_pitch: The starting pitch of the scale (default is 'G4')
+    :param octaves: Number of octaves to span (default is 3)
+    :return: music21.stream.Score object
     """
-    try:
-        # Open the original image
-        with Image.open(input_image_path) as img:
-            width, height = img.size
-            print(f"Original Image Size: {width}x{height} pixels")
+    # Create a Score object
+    s = stream.Score()
 
-            # Calculate crop_height based on the specified proportion
-            crop_height = int(height * crop_proportion)
-            print(f"Calculated Crop Height: {crop_height} pixels (Proportion: {crop_proportion})")
+    # Set up the key signature for G Major (1 sharp)
+    key_sig = key.KeySignature(1)  # G Major has one sharp
+    s.insert(0, key_sig)
 
-            # Ensure crop_height does not exceed the image's height
-            if crop_height > height:
-                crop_height = height
-                print(f"Adjusted Crop Height to Image Height: {crop_height} pixels")
+    # Set up the time signature (e.g., 4/4)
+    ts = meter.TimeSignature('4/4')
+    s.insert(0, ts)
 
-            # Define the cropping box: (left, upper, right, lower)
-            crop_box = (0, 0, width, crop_height)
+    # Optional: Add a tempo marking
+    tempo_mark = tempo.MetronomeMark(number=120)
+    s.insert(0, tempo_mark)
 
-            # Perform the crop
-            cropped_img = img.crop(crop_box)
-            print(f"Cropped Image Size: {cropped_img.size[0]}x{cropped_img.size[1]} pixels")
+    # Create a Part (instrument)
+    p = stream.Part()
+    p.insert(0, key_sig)
+    p.insert(0, ts)
+    p.insert(0, tempo_mark)
 
-            # Save the cropped image
-            cropped_img.save(output_image_path)
-            print(f"Cropped image saved as '{output_image_path}'")
+    # Define the G Major scale over the specified number of octaves
+    scale_pitches = []
+    current_pitch = note.Note(start_pitch)
+    for _ in range(octaves):
+        # Add ascending scale
+        scale = current_pitch.getScale('major')
+        for p_pitch in scale.getPitches(current_pitch.pitch, current_pitch.pitch.transpose('P8')):
+            scale_pitches.append(p_pitch.nameWithOctave)
+        # Move to the next octave
+        current_pitch = current_pitch.transpose('P8')
 
-    except FileNotFoundError:
-        print(f"Error: The file '{input_image_path}' was not found.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # Organize notes into measures
+    measure_number = 1
+    current_measure = stream.Measure(number=measure_number)
+    for i, pitch in enumerate(scale_pitches):
+        n = note.Note(pitch, quarterLength=1)  # Each note is a quarter note
+        current_measure.append(n)
+        # After filling the measure (4 quarter notes), add it to the part
+        if (i + 1) % 4 == 0:
+            p.append(current_measure)
+            measure_number += 1
+            current_measure = stream.Measure(number=measure_number)
+    
+    # Append any remaining notes in the last measure
+    if len(current_measure.notes) > 0:
+        p.append(current_measure)
+
+    # Add the Part to the Score
+    s.append(p)
+
+    # Configure standard page layout
+    page_layout = layout.PageLayout(
+        pageWidth=595,      # A4 width in points (approx.)
+        pageHeight=842,     # A4 height in points (approx.)
+        leftMargin=50,
+        rightMargin=50,
+        topMargin=50,
+        bottomMargin=50
+    )
+    s.insert(0, page_layout)
+
+    # Optional: Configure system layout for better control
+    system_layout = layout.SystemLayout(
+        systemMargins=(20, 20, 20, 20),
+        systemDistance=100
+    )
+    s.insert(0, system_layout)
+
+    return s
 
 if __name__ == "__main__":
-    # Define paths
-    input_path = "output.png"          # Path to the original image
-    output_path = "top_quartet.png"    # Path to save the cropped image
+    # Create the score
+    score = create_g_major_scale_three_octaves(start_pitch='G4', octaves=3)
 
-    # Define the proportion to crop (e.g., 0.25 for 25%)
-    crop_proportion = 0.25
+    # Optional: Specify the path to LilyPond if it's not in the system PATH
+    # env = environment.UserSettings()
+    # env['lilypondPath'] = '/path/to/lilypond'
 
-    # Call the crop function
-    crop_top_quartet(input_path, output_path, crop_proportion)
+    # Show the score as a PDF using LilyPond
+    # This will generate a PDF and open it using the default PDF viewer
+    score.show('lily.pdf')
+
+    # Alternatively, to write the LilyPond file without opening it:
+    # score.write('lily.pdf', fp='g_major_scale_three_octaves.pdf')
+    print("G Major scale over three octaves has been generated and saved as 'g_major_scale_three_octaves.pdf'.")
