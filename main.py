@@ -27,5 +27,8 @@ system_layout = layout.SystemLayout(
 s.insert(0, page_layout)
 s.insert(0, system_layout)
 
-# Show the score as a PDF using LilyPond
-s.show("lily.pdf")
+# Write the score to a LilyPond (.ly) file
+lilypond_filename = "score.ly"
+s.write("lilypond", lilypond_filename)
+
+print(f"LilyPond file has been saved as {lilypond_filename}")
