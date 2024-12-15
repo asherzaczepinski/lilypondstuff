@@ -9,19 +9,23 @@ s.append(note.Note("D4", quarterLength=1))
 s.append(note.Note("E4", quarterLength=1))
 s.append(note.Note("F4", quarterLength=1))
 
-# Configure the layout for larger staff and clearer notation
+# Configure an extremely large layout
+# The staffSize is huge, and the page size is gigantic to prevent shrinking.
 page_layout = layout.PageLayout(
-    staffSize=80  # Increase staff size for larger notes
+    staffSize=640,      # 8x the original already large size.
+    pageWidth=2000,     # Very large page width in points
+    pageHeight=2000,    # Very large page height in points
+    lineWidth=1800      # Large line width so LilyPond doesn't wrap or shrink
 )
 
 system_layout = layout.SystemLayout(
-    systemMargins=(50, 50, 50, 50),  # Larger margins for centering on the page
-    systemDistance=200               # Increased space between systems for clarity
+    systemMargins=(400, 400, 400, 400),  # Very large margins
+    systemDistance=1600                  # Very large system distance
 )
 
 # Insert layout configurations
 s.insert(0, page_layout)
 s.insert(0, system_layout)
 
-# Output directly to a PDF using LilyPond
+# Show the score as a PDF using LilyPond
 s.show("lily.pdf")
